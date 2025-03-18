@@ -314,35 +314,45 @@ private:
     // Класс, представляющий операцию возведения в степень
     class OperationPow : public ExpressionImpl {
     public:
-        OperationPow(Expression base, Expression exponent) : base_(base), exponent_(exponent) {} // Конструктор для возведения в степень
+        OperationPow(Expression base, Expression exponent) : base_(base), exponent_(exponent) {}
+
         T eval(std::map<std::string, T> context) const override {
-            return std::pow(base_.eval(context), exponent_.eval(context)); // Возводим в степень
+            return std::pow(base_.eval(context), exponent_.eval(context));
         }
+
         std::string to_string() const override {
-            return "(" + base_.to_string() + " ^ " + exponent_.to_string() + ")"; // Возвращаем строку вида "(a ^ b)"
+            return "(" + base_.to_string() + " ^ " + exponent_.to_string() + ")";
         }
+
         Expression diff(const std::string& variable) const override {
-            return exponent_ * (base_ ^ (exponent_ - Expression(1.0))) * base_.diff(variable); // Производная степени
+            Expression base_derivative = base_.diff(variable);
+            Expression exponent_derivative = exponent_.diff(variable);
+
+            // Формула сложного дифференцирования: f(x)^g(x) * (g'(x) * ln(f(x)) + g(x) * f'(x) / f(x))
+            Expression part1 = exponent_derivative * base_.ln();
+            Expression part2 = exponent_ * (base_derivative / base_);
+            Expression derivative = (base_ ^ exponent_) * (part1 + part2);
+
+            return derivative;
         }
+
         Expression simplify() const override {
             Expression base = base_.simplify();
             Expression exponent = exponent_.simplify();
 
-            // Если показатель степени равен нулю, возвращаем 1
             if (exponent.to_string() == "0") {
                 return Expression(1.0);
             }
 
-            // Если основание равно нулю, возвращаем 0
             if (base.to_string() == "0") {
                 return Expression(0.0);
             }
 
-            // Иначе возвращаем упрощённое возведение в степень
             return base ^ exponent;
         }
+
     private:
-        Expression base_, exponent_; // Основание и показатель степени
+        Expression base_, exponent_;
     };
 
     // Класс, представляющий операцию синуса
